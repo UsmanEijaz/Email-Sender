@@ -29,7 +29,6 @@ namespace EmailSender.Services
             {
                 var email = new MimeMessage();
 
-                var abc = _settings.From;
                 email.From.Add(new MailboxAddress(
                     _settings.DisplayName,
                     _settings.From));
@@ -52,7 +51,7 @@ namespace EmailSender.Services
 
                 using (var client = new SmtpClient())
                 {
-                    await client.ConnectAsync(_settings.Host, _settings.Port, MailKit.Security.SecureSocketOptions.Auto);
+                    await client.ConnectAsync(_settings.Host, _settings.Port, SecureSocketOptions.StartTls);
                     await client.AuthenticateAsync(_settings.Username, _settings.Password);
 
                     await client.SendAsync(email);
