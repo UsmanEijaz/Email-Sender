@@ -1,9 +1,8 @@
 ﻿using EmailSender.Model;
-using MailKit.Net.Smtp;
-using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MimeKit;
+using System.Net;
+using System.Net.Mail;
 
 namespace EmailSender.Services
 {
@@ -27,57 +26,29 @@ namespace EmailSender.Services
         {
             try
             {
-                var email = new MimeMessage();
-
-                email.From.Add(new MailboxAddress(
-                    _settings.DisplayName,
-                    _settings.From));
-
-                email.To.Add(MailboxAddress.Parse(toEmail));
+                var email = new MailMessage();
+                email.From = new MailAddress(_settings.From);
                 email.Subject = subject;
-
-                var builder = new BodyBuilder
-                {
-                    HtmlBody = htmlBody
-                };
+                email.To.Add(new MailAddress(toEmail));
 
                 if (!string.IsNullOrEmpty(attachmentPath)
                     && File.Exists(attachmentPath))
                 {
-                    builder.Attachments.Add(attachmentPath);
+                    email.Attachments.Add(new Attachment(attachmentPath));
                 }
 
-                email.Body = builder.ToMessageBody();
+                email.Body = htmlBody;
+                email.IsBodyHtml = true;
 
-                using (var client = new SmtpClient())
+                using (var smtp = new SmtpClient())
                 {
-                    await client.ConnectAsync(_settings.Host, _settings.Port, SecureSocketOptions.StartTls);
-                    await client.AuthenticateAsync(_settings.Username, _settings.Password);
-
-                    await client.SendAsync(email);
-                    await client.DisconnectAsync(true);
+                    smtp.Port = _settings.Port;
+                    smtp.Host = _settings.Host;
+                    smtp.EnableSsl = true;
+                    smtp.Credentials = new NetworkCredential(_settings.From, _settings.Password);
+                    //smtp.Send(email);
+                    await smtp.SendMailAsync(email);
                 }
-
-                //using var smtp = new SmtpClient();
-
-
-                //await smtp.ConnectAsync(
-                //    _settings.Host,
-                //    _settings.Port,
-                //   SecureSocketOptions.SslOnConnect);
-
-                ////await smtp.ConnectAsync(
-                ////    _settings.Host,
-                ////    _settings.Port,
-                ////   SecureSocketOptions.StartTls);
-
-                //await smtp.AuthenticateAsync(
-                //    _settings.Username,
-                //    _settings.Password);
-
-                //await smtp.SendAsync(email);
-                //await smtp.DisconnectAsync(true);
-
                 _logger.LogInformation("Email sent successfully");
             }
             catch (Exception ex)

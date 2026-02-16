@@ -1,9 +1,8 @@
-﻿
-using EmailSender.Model;
+﻿using EmailSender.Model;
 using EmailSender.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-
+using Microsoft.Extensions.Options;
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
@@ -17,10 +16,10 @@ var host = Host.CreateDefaultBuilder(args)
     .Build();
 
 var emailService = host.Services.GetRequiredService<EmailService>();
+var settings = host.Services.GetRequiredService<IOptions<EmailSettings>>().Value;
 
 // Load HTML template
 var templatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "email.html");
-//var templatePath = "C:\\Users\\Usman.Eijaz\\Documents\\Usman Backup\\Project\\NotificationSystem\\Templates\\email.html"; //Path.Combine("NotificationSystem\\Templates", "email.html");
 var html = await File.ReadAllTextAsync(templatePath);
 
 // Replace placeholders
@@ -28,9 +27,8 @@ html = html.Replace("{{name}}", "Usman");
 
 // Send email
 await emailService.SendEmailAsync(
-    "test@yopmail.com",
+    settings.To,
+    "Text Subject",
     html,
     null // optional attachment path
 );
-
-Console.WriteLine("Process finished.");
